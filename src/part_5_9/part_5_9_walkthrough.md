@@ -469,6 +469,8 @@ def reciprocal_rank_fusion(results: list[list], k=60):
 
 > **Key difference from Multi-Query**: Multi-Query uses simple deduplication (`set()`). RAG Fusion uses **ranked scoring** — docs that appear high across multiple queries get the best score.
 
+> ⚠️ **Code note**: The line `previous_score = fused_scores[doc_str]` on line 436 stores the document's current score **before** adding the new RRF contribution, but this value is **never read or used** afterward. It's a harmless leftover — you can safely remove it without affecting behavior.
+
 ```python
 retrieval_chain_rag_fusion = (
     generated_queries

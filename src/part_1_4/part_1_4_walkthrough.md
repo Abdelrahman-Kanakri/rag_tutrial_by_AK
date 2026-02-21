@@ -37,12 +37,17 @@ load_dotenv()
 Reads `.env` file in the project root and loads its key-value pairs into environment variables.
 
 ```python
-os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGSMITH_TRACING_V2")
-os.environ["LANGCHAIN_API_KEY"]    = os.getenv("LANGSMITH_API_KEY")
-os.environ["LANGCHAIN_PROJECT"]    = os.getenv("LANGSMITH_PROJECT")
-os.environ["LANGCHAIN_ENDPOINT"]   = os.getenv("LANGSMITH_ENDPOINT")
-os.environ["MISTRAL_API_KEY"]      = os.getenv("MISTRAL_API_KEY")
-os.environ["USER_AGENT"]           = "MyLangChainApp/1.0"
+try:
+    os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGSMITH_TRACING_V2")
+    os.environ["LANGCHAIN_API_KEY"]    = os.getenv("LANGSMITH_API_KEY")
+    os.environ["LANGCHAIN_PROJECT"]    = os.getenv("LANGSMITH_PROJECT")
+    os.environ["LANGCHAIN_ENDPOINT"]   = os.getenv("LANGSMITH_ENDPOINT")
+    os.environ["MISTRAL_API_KEY"]      = os.getenv("MISTRAL_API_KEY")
+    os.environ["HF_TOKEN"]             = os.getenv("HF_TOKEN")
+    os.environ["USER_AGENT"]           = "MyLangChainApp/1.0"
+    print("Environment variables set successfully")
+except Exception as e:
+    print(f"Error: {e}")
 ```
 
 | Variable               | Purpose                                           |
@@ -52,9 +57,10 @@ os.environ["USER_AGENT"]           = "MyLangChainApp/1.0"
 | `LANGCHAIN_PROJECT`    | LangSmith project name to group traces            |
 | `LANGCHAIN_ENDPOINT`   | LangSmith API endpoint URL                        |
 | `MISTRAL_API_KEY`      | API key for the **Mistral AI** LLM & embeddings   |
+| `HF_TOKEN`             | API token for **Hugging Face** model access       |
 | `USER_AGENT`           | Required header for `WebBaseLoader` HTTP requests |
 
-> The `try/except` block catches any errors during setup and prints them.
+> The entire setup is wrapped in a **`try/except`** block — if any environment variable is missing or an error occurs, it prints the error message instead of crashing the notebook. This is a defensive pattern: fail gracefully and tell the developer what went wrong.
 
 ---
 
@@ -90,6 +96,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_mistralai import ChatMistralAI, MistralAIEmbeddings
 from langsmith import Client
+client = Client()
 ```
 
 | Import                           | Role                                                          |
@@ -103,6 +110,8 @@ from langsmith import Client
 | `ChatMistralAI`                  | Mistral AI chat model wrapper                                 |
 | `MistralAIEmbeddings`            | Mistral AI embeddings model wrapper                           |
 | `Client` (LangSmith)             | Client to interact with LangSmith (pull prompts, tracing)     |
+
+> **`client = Client()`** creates a LangSmith client instance. This object is your gateway to the LangSmith platform — it lets you **pull community prompts** (like `rlm/rag-prompt`), **push traces**, and **manage datasets**. It reads `LANGCHAIN_API_KEY` and `LANGCHAIN_ENDPOINT` from the environment variables set above.
 
 ### Step 1 – Load Documents
 
@@ -472,9 +481,16 @@ print(result)
 from langsmith import Client
 client = Client()
 prompt_temp = client.pull_prompt("rlm/rag-prompt")
+```
 
+| Line | What it does |
+| ---- | ------------ |
+| `Client()` | Creates a LangSmith client (reads API key from env) |
+| `client.pull_prompt("rlm/rag-prompt")` | Downloads the **community RAG prompt** `rlm/rag-prompt` from LangSmith Hub — a battle-tested template with `{context}` and `{question}` placeholders |
+
+```python
 rag_chain = (
-    {"context": retriever, "question": RunnablePassthrough()}
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
     | prompt_temp
     | llm
     | StrOutputParser()
@@ -483,10 +499,17 @@ rag_chain = (
 print(rag_chain.invoke("What is Task Decomposition?"))
 ```
 
-- Pulls the **community RAG prompt** from LangSmith Hub.
-- Builds a full RAG chain: **retriever → prompt → LLM → string output**.
+| Step | What happens |
+| ---- | ------------ |
+| `retriever \| format_docs` | The question is sent to the retriever → top-k documents are returned → `format_docs` joins their `page_content` with `\n\n` → fills `{context}` |
+| `RunnablePassthrough()` | Forwards the raw question string unchanged → fills `{question}` |
+| `prompt_temp` | The LangSmith Hub prompt combines context + question into a structured message |
+| `llm` | Mistral LLM generates an answer grounded in the retrieved context |
+| `StrOutputParser()` | Extracts the response as a plain string |
 
-> ⚠️ **Note**: Unlike Part 1, the `format_docs` function is **not** applied to the retriever output here. LangChain will auto-format the documents, but using `format_docs` gives you more control over how context is formatted.
+> **How this differs from Cell 12:** Cell 12 passed the **entire raw document** as context (no retriever). This cell uses the **retriever** to find only the most relevant chunks first — this is the "real" RAG pattern you'd use in production.
+
+> ⚠️ **Note**: The notebook version uses `retriever` directly without `format_docs`. LangChain will auto-format the documents, but applying `format_docs` (as shown in Part 1) gives you explicit control over how context is formatted for the LLM.
 
 ---
 
