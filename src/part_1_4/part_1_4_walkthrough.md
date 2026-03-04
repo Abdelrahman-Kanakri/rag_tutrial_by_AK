@@ -1,12 +1,43 @@
 # RAG Tutorial – Parts 1–4 Walkthrough
 
-> Line-by-line explanation of [`part_1_4.ipynb`](file:///c:/Users/abdel/OneDrive/Desktop/rag_tutorial/src/part_1_4.ipynb)
+> Line-by-line explanation of [`part_1_4.ipynb`](file:///c:/Users/abdel/OneDrive/Desktop/rag_tutorial/src/part_1_4/part_1_4.ipynb)
 
 ---
 
-## 📚 References (Cell 1 – Markdown)
+## 📋 LangChain vs LangGraph Recap (Cell 1 – Markdown)
+
+The notebook opens with a comprehensive reference comparing **LangChain** and **LangGraph** — the two main frameworks used throughout this tutorial. This is not executable code, but understanding these concepts provides context for how the RAG pipeline components fit into the broader AI agent ecosystem.
+
+### Key Tables Covered
+
+| Table # | Topic | Summary |
+| ------- | ----- | ------- |
+| 1 | High-Level Architecture | Maps each layer (Capability, Execution, Memory, State, Context, Contracts) to its owner (LangChain vs LangGraph vs Application) |
+| 2 | LangChain vs LangGraph | Compares primary role, control flow, state management, parallel execution, determinism, and production readiness |
+| 3 | AgentState vs TypedDict State | Agent internal memory (LangChain) vs workflow shared state (LangGraph) — mutation style, scope, reducer support |
+| 4 | dataclass Context vs AgentState | Runtime configuration (static, external) vs agent memory (mutable, internal) |
+| 5 | TypedDict vs BaseModel | Python typing (no runtime validation) vs Pydantic (runtime enforced, automatic serialization) |
+| 6 | State Evolution Comparison | Accumulating memory vs selective updates — context growth, data ownership, parallel safety |
+| 7 | Mental Model Summary | One-line analogies: LangChain = toolkit, LangGraph = engine, AgentState = memory, TypedDict = data flow, etc. |
+| 8 | Architecture Diagram | Text diagram: Application → Context → LangGraph Workflow → State → Node → LangChain Agent → AgentState + Tools + LLM |
+
+> **Why this matters**: These tables provide the conceptual foundation for understanding where RAG pipeline components (retrievers, prompts, chains) fit in the broader LangChain/LangGraph architecture. RAG uses the **Capability Layer** (LLMs, prompts, tools) from LangChain, while production RAG systems often use the **Execution Layer** from LangGraph.
+
+---
+
+## 📚 References (Cell 2 – Markdown)
 
 Links to the official LangChain documentation and Python API reference.
+
+---
+
+## 🖼️ Full RAG Pipeline Diagram (Cell 3 – Markdown)
+
+```
+![alt text](../../assets/Full Rag Pipeline.png)
+```
+
+Displays a visual diagram of the **complete RAG pipeline** — showing the flow from document loading through splitting, embedding, storing, retrieving, and generating. This image provides a high-level overview of everything covered in Parts 1–4.
 
 ---
 
@@ -459,10 +490,17 @@ prompt = ChatPromptTemplate.from_template(template)
 - `{context}` – filled with retrieved documents.
 - `{question}` – filled with the user's question.
 
+> **Note**: The cell ends with `prompt` (no `print`), which displays the raw `ChatPromptTemplate` object as output:
+> ```
+> ChatPromptTemplate(input_variables=['context', 'question'], ...,
+>   template='Answer the question based only on the following context: \n{context}\n\nQuestion: {question}\n')
+> ```
+> This is useful for inspecting the template structure and verifying that the input variables are correctly defined.
+
 ### Cell 12 continued – Simple Chain (no retriever)
 
 ```python
-llm = ChatMistralAI(model="mistral-medium-latest", temperature=0)
+llm = ChatMistralAI(model="mistral-small-latest", temperature=0)
 
 chain = prompt | llm | StrOutputParser()
 

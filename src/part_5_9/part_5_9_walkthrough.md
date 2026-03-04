@@ -4,6 +4,39 @@
 
 ---
 
+## 📋 LangChain vs LangGraph Recap (Cell 1 – Markdown)
+
+The notebook opens with the same comprehensive reference comparing **LangChain** and **LangGraph** as in Part 1–4. This recap is repeated in every notebook for quick reference.
+
+### Key Tables Covered
+
+| Table # | Topic | Summary |
+| ------- | ----- | ------- |
+| 1 | High-Level Architecture | Maps each layer (Capability, Execution, Memory, State, Context, Contracts) to its owner (LangChain vs LangGraph vs Application) |
+| 2 | LangChain vs LangGraph | Compares primary role, control flow, state management, parallel execution, determinism, and production readiness |
+| 3 | AgentState vs TypedDict State | Agent internal memory (LangChain) vs workflow shared state (LangGraph) — mutation style, scope, reducer support |
+| 4 | dataclass Context vs AgentState | Runtime configuration (static, external) vs agent memory (mutable, internal) |
+| 5 | TypedDict vs BaseModel | Python typing (no runtime validation) vs Pydantic (runtime enforced, automatic serialization) |
+| 6 | State Evolution Comparison | Accumulating memory vs selective updates — context growth, data ownership, parallel safety |
+| 7 | Mental Model Summary | One-line analogies: LangChain = toolkit, LangGraph = engine, AgentState = memory, TypedDict = data flow, etc. |
+| 8 | Architecture Diagram | Text diagram: Application → Context → LangGraph Workflow → State → Node → LangChain Agent → AgentState + Tools + LLM |
+
+> See the [Part 1–4 walkthrough](file:///c:/Users/abdel/OneDrive/Desktop/rag_tutorial/src/part_1_4/part_1_4_walkthrough.md) for a detailed explanation of each table.
+
+---
+
+## 📌 Notebook Title & Overview Diagram (Cells 2–3 – Markdown)
+
+**Cell 2** — Section heading:
+> `## Rag From Scratch: Query Transformations/Translation`
+
+**Cell 3** — Flow diagram:
+> `![alt text](../../assets/Query Transilation.png)`
+
+Displays a visual overview of the **Query Translation** techniques covered in this notebook (Parts 5–9). These techniques all transform the user’s question in different ways before retrieval to improve search results.
+
+---
+
 ## ⚙️ Environment Initialization (Cell 1 – Code)
 
 ### Imports
@@ -520,6 +553,8 @@ final_fusion_rag_chain = (
 final_fusion_rag_chain.invoke({"question": question})
 ```
 
+> ⚠️ **Code note**: The notebook has `question = question = "What is task decomposition..."` — a **double assignment**. This is harmless (Python simply assigns twice to the same variable), but it’s likely a typo. A single `question = "..."` is sufficient.
+
 | Step                               | What it does                                              |
 | ---------------------------------- | --------------------------------------------------------- |
 | `retrieval_chain_rag_fusion`       | RRF-reranked docs used as `{context}`                     |
@@ -549,6 +584,14 @@ Decomposition addresses a different problem than Multi-Query or RAG Fusion. Inst
 
 **Why it helps:** Complex questions often span multiple topics. Decomposition ensures each topic gets its own focused retrieval, rather than hoping a single query retrieves everything needed.
 
+### Reconnect Note (Markdown Cell before Cell 12)
+
+> **⚠️ RUN THE BELOW CELL FOR RE CONNECT TO THE VECTORDB AGAIN**
+
+The notebook includes this note before the code cell, reminding the user to re-run the connection cell if they restarted the kernel mid-notebook (e.g., when jumping directly to Part 7 without running Parts 5–6).
+
+---
+
 ### Cell 12 – Reconnect to Existing DB (Code)
 
 ```python
@@ -572,13 +615,19 @@ embeddings = MistralAIEmbeddings(model="mistral-embed")
 ROOT_DIR = Path.cwd().parents[1]
 DB_DIR = ROOT_DIR / "db_blog"
 
-vectorstore = Chroma(
-    embedding_function=embeddings,
-    collection_name="blog_posts",
-    persist_directory=str(DB_DIR)
-)
+try:
+    vectorstore = Chroma(
+        embedding_function=embeddings,
+        collection_name="blog_posts",
+        persist_directory=str(DB_DIR)
+    )
+    count = vectorstore._collection.count()
+    print(f"Total items in 'blog_posts': {count}")
+    if count > 0:
+        print("Database opened successfully with existing data.")
+except ConnectionError as e:
+    print("Database is empty. Check your path or if data was previously saved.")
 
-count = vectorstore._collection.count()
 retriever = vectorstore.as_retriever()
 ```
 
@@ -586,10 +635,12 @@ retriever = vectorstore.as_retriever()
 | --------------------------------- | --------------------------------------------------------------- |
 | `Chroma(...)`                     | **Loads existing** DB (no `from_documents` — doesn't re-index!) |
 | `collection_name="blog_posts"`    | Connects to the same collection created in Part 5               |
+| `try / except ConnectionError`    | Gracefully handles a missing or corrupted database              |
 | `vectorstore._collection.count()` | Prints item count to verify data exists (→ 350)                 |
+| `if count > 0:`                   | Only prints success message if data actually exists             |
 | `as_retriever()`                  | Default retriever (returns top 4 docs)                          |
 
-> Unlike Part 5 which used `Chroma.from_documents()` to create a new store, this uses `Chroma()` to **open** the existing one.
+> Unlike Part 5 which used `Chroma.from_documents()` to create a new store, this uses `Chroma()` to **open** the existing one. The `try/except` block is a defensive pattern — if the database path is wrong or the data was never saved, it prints a helpful error instead of crashing.
 
 ---
 
