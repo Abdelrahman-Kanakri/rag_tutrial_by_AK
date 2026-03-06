@@ -665,3 +665,11 @@ flowchart TB
 | **Ensure prompt templates are semantically distinct**                         | Similar prompts will produce similar embeddings → unreliable      |
 | **Consider adding more prompt templates** as your domain grows               | Semantic routing scales naturally with more prompt embeddings     |
 | **Print similarity scores** during development                               | Helps verify that the correct prompt is being selected            |
+
+---
+
+## ➡️ Next Steps
+
+Routing decides **where** to send a query, but it doesn't tell you **how** to search optimally within that data source. **Part 11: Query Structuring for Metadata Filters** ([`part_11_walkthrough.md`](file:///c:/Users/abdel/OneDrive/Desktop/rag_tutorial/src/part_10_and_11/part_11_walkthrough.md)) tackles this next step — using structured LLM output to convert user questions into content queries plus metadata filters (dates, view counts, video length, etc.).
+
+> **In production**, routing (Part 10) and query structuring (Part 11) work together as complementary pre-retrieval steps: routing picks the right data source, then query structuring builds an optimized query for that source.
