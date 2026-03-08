@@ -7,7 +7,27 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+.venv/
 
 # Environment variables
 .env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# ChromaDB generated databases
+db_blog/
+chroma_db/
+chroma_all_texts_db/
+*.sqlite3
+
+# ColBERT index artifacts
+.ragatouille/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+*.code-workspace
